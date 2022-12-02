@@ -4,22 +4,12 @@ import time
 import math
 from sklearn.feature_selection import SelectPercentile
 
+true, false = 1, 0
 
-
-
-# for the given test data number of positives, number of negatives
-
-
-
-f= open("train.pkl", 'rb') 
+f = open("train.pkl", 'rb') 
 training = pickle.load(f)
-
-
-
-
-
 class vclassifier:
-    def __init__(self,epoch):
+    def __init__(self, epoch):
         self.alphas = []
         self.clfs = []
         self.epoch =  epoch
@@ -36,11 +26,11 @@ class vclassifier:
                 weights.append(1 / (2 * negatives))
         weights = np.array(weights)
 
-        height,width = data[0][0].shape
+        height, width = data[0][0].shape
 
         features = []
-        for i in range(1,width+1):
-            for j in range(1,height+1):
+        for i in range(1, width + 1):
+            for j in range(1, height + 1):
 
                 for a in range(width-i):
                     for b in range(height-j):
@@ -75,15 +65,17 @@ class vclassifier:
         print(y.shape)
         for i  in range(len(data)):
             if data[i][1]:
-                y[i] =1
+                y[i] = 1
         tot = len(features)
-        i=0
+        i = 0
+        j = 0
         for pos_regions, neg_regions in features:
-            for j in range(len(data)):
+            while j < len(data):
                 X[i][j]= self.util(data[j][0],pos_regions,neg_regions)
+                j += 1
             i+=1 
             
-            print( round(i/tot*100,2), end='\r', flush=True)
+            print( round(i/tot*100.0,2), end='\r', flush=True)
 
 
         indices = SelectPercentile().fit(X.T, y).get_support(indices=True)
@@ -106,8 +98,8 @@ class vclassifier:
 
 
     def weak_classifier_train(self,X,y,features,weights):
-        num_pos=0
-        num_neg=0
+        num_pos=0.0
+        num_neg=0.0
         l = len(y)
         for i in range(l):
             if y[i] == 1:
@@ -123,8 +115,8 @@ class vclassifier:
 
             applied_feature = sorted(zip(weights, feature, y), key=lambda x: x[1])
 
-            pos_seen, neg_seen = 0, 0
-            pos_weights, neg_weights = 0, 0
+            pos_seen, neg_seen = 0.0, 0.0
+            pos_weights, neg_weights = 0.0, 0.0
             min_error, best_feature, best_threshold, best_polarity = float('inf'), None, None, None
             for w, f, label in applied_feature:
                 error = min(neg_weights + num_pos - pos_weights, pos_weights + num_neg - neg_weights)
@@ -134,11 +126,11 @@ class vclassifier:
                     best_threshold = f
                     best_polarity = 1 if pos_seen > neg_seen else -1
 
-                if label == 1:
-                    pos_seen += 1
+                if label == 1.0:
+                    pos_seen += 1.0
                     pos_weights += w
                 else:
-                    neg_seen += 1
+                    neg_seen += 1.0
                     neg_weights += w
             
             clf = weakClassifier(best_feature[0], best_feature[1], best_threshold, best_polarity)
@@ -159,7 +151,7 @@ class vclassifier:
         return best_clf, best_error, best_accuracy
 
     def util(self,mat,pos_regions,neg_regions):
-        sum=0
+        sum = 0.0
         for pos in pos_regions:
             x,y,w,h = pos
             sum+= mat[x+w][y+h]+mat[x][y] - (mat[x][y+h] +  mat[x+w][y])
@@ -175,7 +167,7 @@ class vclassifier:
        
         return sum 
     def classify(self, image):
-        total = 0
+        total = 0.0
         ii = integral_image_cal(image)
         for alpha, clf in zip(self.alphas, self.clfs):
             total += alpha * clf.classify(ii)
@@ -191,11 +183,11 @@ def integral_image_cal(mat):
     for x in range(sh[0]): 
 
         for y in range(sh[1]):
-            if(y==0):
+            if(y==false):
                 row_sum[y] = mat[x][y]
             else:
                 row_sum[y] = row_sum[y-1]+mat[x][y]
-            if(x==0):
+            if(x==false):
                 integral_image[x][y] = row_sum[y] 
             else:
                 integral_image[x][y] = integral_image[x-1][y] + row_sum[y] 
@@ -223,30 +215,30 @@ class weakClassifier:
             sum-= mat[x+w][y+h]+mat[x][y] - (mat[x][y+h] +  mat[x+w][y])
        
         
-        return 1 if self.polarity * sum < self.polarity * self.threshold else 0
+        return true if self.polarity * sum < self.polarity * self.threshold else false
 
 def evaluate(clf, data):
-    correct = 0
-    all_negatives, all_positives = 0, 0
-    true_negatives, false_negatives = 0, 0
-    true_positives, false_positives = 0, 0
-    classification_time = 0
+    correct = 0.0
+    all_negatives, all_positives = 0.0, 0.0
+    true_negatives, false_negatives = 0.0, 0.0
+    true_positives, false_positives = 0.0, 0.0
+    classification_time = 0.0
 
     for x, y in data:
-        if y == 1:
-            all_positives += 1
+        if y == 1.0:
+            all_positives += 1.0
         else:
-            all_negatives += 1
+            all_negatives += 1.0
 
         start = time.time()
         prediction = clf.classify(x)
         classification_time += time.time() - start
-        if prediction == 1 and y == 0:
-            false_positives += 1
-        if prediction == 0 and y == 1:
-            false_negatives += 1
+        if prediction == 1.0 and y == 0.0:
+            false_positives += 1.0
+        if prediction == 0.0 and y == 1.0:
+            false_negatives += 1.0
         
-        correct += 1 if prediction == y else 0
+        correct += 1 if prediction == y else false
     
     print("False Positive Rate: %d/%d (%f)" % (false_positives, all_negatives, false_positives/all_negatives))
     print("False Negative Rate: %d/%d (%f)" % (false_negatives, all_positives, false_negatives/all_positives))
